@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 
 import argparse
-from asyncio import all_tasks
-from operator import call
 import signal
 import subprocess
 import os
@@ -62,7 +60,7 @@ def tail_log(log_file: Path, num_lines=10):
 def run(cmd_string: str, cmd_name: Optional[str], watch: bool):
     now = datetime.now()
     if cmd_name is None:
-        cmd_name = f"{now.strftime("%Y%m%d%H%M%S")}_{hashlib.md5(cmd_string.encode()).hexdigest()}"
+        cmd_name = f"{now.strftime('%Y%m%d%H%M%S')}_{hashlib.md5(cmd_string.encode()).hexdigest()}"
     log_file = get_log_path(cmd_name)
     info_file = get_info_path(cmd_name)
     if info_file.exists():
