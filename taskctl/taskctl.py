@@ -275,6 +275,22 @@ def rename(old_name: str, new_name: str):
 
     print(f"任务 [{old_name}] 已重命名为 [{new_name}]")
 
+def rerun(cmd_name: str, watch: bool):
+    info_file = get_info_path(cmd_name)
+    if not info_file.exists():
+        print(f"任务 [{cmd_name}] 不存在，无法重新运行")
+        return
+
+    with info_file.open("r") as f:
+        info = TaskInfo(**json.load(f))
+
+    if info.status == Status.RUNNING.value and is_pid_running(info.pid):
+        print(f"任务 [{cmd_name}] 正在运行中，无法重新运行")
+        return
+
+    # 重新运行任务
+    run(info.cmd, cmd_name, watch)
+    print(f"任务 [{cmd_name}] 已重新运行")
 
 def main():
     parser = argparse.ArgumentParser(description="任务后台管理工具")
@@ -307,6 +323,10 @@ def main():
     callback_parser.add_argument("cmd_name")
     callback_parser.add_argument("exit_code", type=int)
 
+    rerun_parser = subparsers.add_parser("rerun", help="重新运行已完成的任务")
+    rerun_parser.add_argument("cmd_name", help="任务名称")
+    rerun_parser.add_argument("-w", "--watch", action="store_true", help="实时查看日志")
+
     args = parser.parse_args()
 
     LOG_DIR.mkdir(parents=False, exist_ok=True)
@@ -327,6 +347,8 @@ def main():
         callback(args.cmd_name, args.exit_code)
     elif args.command == "rename":
         rename(args.old_name, args.new_name)
+    elif args.command == "rerun":
+        rerun(args.cmd_name, args.watch)
 
 
 if __name__ == "__main__":
