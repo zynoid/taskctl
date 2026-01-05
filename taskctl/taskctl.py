@@ -12,6 +12,7 @@ from pathlib import Path
 from enum import Enum
 from dataclasses import dataclass, asdict
 import textwrap
+import psutil
 
 
 LOG_DIR = Path.home() / ".taskctl"
@@ -107,6 +108,15 @@ def get_running_tasks() -> list[str]:
                 cmd_names.append(info.cmd_name)
     return cmd_names
 
+def kill_process_tree(pid):
+    try:
+        parent = psutil.Process(pid)
+        for child in parent.children(recursive=True):
+            child.kill()
+        parent.kill()
+    except Exception as e:
+        print(f"kill error: {e}")
+
 def stop(cmd_name: Optional[str]):
     if cmd_name is None:
         cmd_names: list[str] = get_running_tasks()
@@ -137,7 +147,7 @@ def stop(cmd_name: Optional[str]):
     if info.status != Status.RUNNING.value or not is_pid_running(info.pid):
         print(f"任务 [{cmd_name}] 未在运行中")
         return
-    os.killpg(os.getpgid(info.pid), signal.SIGTERM)
+    kill_process_tree(info.pid)
     info.status = Status.STOPPED.value
     info.end_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S.%f")
     info.duration = (datetime.strptime(info.end_time, "%Y-%m-%d %H:%M:%S.%f") - datetime.strptime(info.start_time, "%Y-%m-%d %H:%M:%S.%f")).total_seconds()
